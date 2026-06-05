@@ -7,7 +7,7 @@
 	"authors": [
 		"Damomo1"
 	],
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/autotrade-plus/icon.png",
 	"environment": "client",
 	"entrypoints": {
