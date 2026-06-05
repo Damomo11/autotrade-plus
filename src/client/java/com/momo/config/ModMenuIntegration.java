@@ -2,8 +2,9 @@ package com.momo.config;
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ModMenuIntegration implements ModMenuApi {
     @Override
@@ -12,29 +13,28 @@ public class ModMenuIntegration implements ModMenuApi {
             try {
                 return ModConfigManager.createConfigScreen(parent);
             } catch (Exception e) {
-                return new ErrorScreen(Text.translatable("text.autotrade-plus.error.config"), Text.of(e.getMessage()));
+                return new ErrorScreen(Component.translatable("text.autotrade-plus.error.config"), Component.nullToEmpty(e.getMessage()));
             }
         };
     }
 
     private static class ErrorScreen extends Screen {
-        private final Text message;
+        private final Component message;
 
-        protected ErrorScreen(Text title, Text message) {
+        protected ErrorScreen(Component title, Component message) {
             super(title);
             this.message = message;
         }
 
         @Override
-        public void render(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY, float delta) {
-            super.render(context, mouseX, mouseY, delta);
-            context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 50, 0xFFFFFF);
-            context.drawCenteredTextWithShadow(this.textRenderer, this.message, this.width / 2, 70, 0xFF5555);
+        protected void init() {
+            addRenderableWidget(new StringWidget(0, 50, this.width, 18, this.title, this.font));
+            addRenderableWidget(new StringWidget(0, 70, this.width, 18, this.message, this.font));
         }
 
         @Override
-        public void close() {
-            this.client.setScreen(null);
+        public void onClose() {
+            this.minecraft.setScreen(null);
         }
     }
 }

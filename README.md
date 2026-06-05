@@ -18,7 +18,7 @@ It scans nearby villagers, opens their trading screen, runs the favorited trades
 
 ## Requirements
 
-- Minecraft 1.21.11
+- Minecraft 26.1
 - Fabric Loader
 - Fabric API
 - Cloth Config
@@ -34,7 +34,7 @@ It scans nearby villagers, opens their trading screen, runs the favorited trades
 
 ## Build
 
-Install JDK 21, then run:
+Install JDK 25, then run:
 
 ```powershell
 .\gradlew.bat build
@@ -49,5 +49,5 @@ On Linux or macOS:
 The built mod jar will be generated at:
 
 ```text
-build/libs/autotrade-plus-1.21.11.jar
+build/libs/autotrade-plus-26.1.jar
 ```

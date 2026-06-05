@@ -3,8 +3,8 @@ package com.momo.config;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.Toml4jConfigSerializer;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.ActionResult;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.InteractionResult;
 
 public class ModConfigManager {
     private static ConfigHolder<ModConfig> configHolder;
@@ -15,7 +15,7 @@ public class ModConfigManager {
 
         configHolder.registerSaveListener((holder, config) -> {
             System.out.println("[autotrade-plus] Config saved");
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         });
     }
 

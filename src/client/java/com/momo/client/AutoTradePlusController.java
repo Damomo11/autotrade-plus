@@ -6,26 +6,6 @@ import com.momo.config.ModConfig;
 import com.momo.config.ModConfigManager;
 import com.momo.config.VillagerProfessionCatalog;
 import com.momo.utils.InventoryDropper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.entity.passive.FishEntity;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.village.VillagerProfession;
-import net.minecraft.world.World;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +15,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.animal.fish.AbstractFish;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.villager.VillagerProfession;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public class AutoTradePlusController {
     private int roundCooldown;
@@ -57,9 +57,9 @@ public class AutoTradePlusController {
         totalGameTick++;
 
         ModConfig config = ModConfigManager.get();
-        MinecraftClient client = MinecraftClient.getInstance();
-        PlayerEntity player = client.player;
-        ClientPlayerInteractionManager interaction = client.interactionManager;
+        Minecraft client = Minecraft.getInstance();
+        Player player = client.player;
+        MultiPlayerGameMode interaction = client.gameMode;
 
         if (config == null || player == null || interaction == null) {
             return;
@@ -67,7 +67,7 @@ public class AutoTradePlusController {
 
         processPendingDrop(config);
 
-        if (client.currentScreen != null) {
+        if (client.screen != null) {
             drainKeyPresses(AutoTradePlusClient.toggleKey);
             drainKeyPresses(AutoTradePlusClient.openConfigKey);
             handleMerchantScreen(config, client, player);
@@ -102,7 +102,7 @@ public class AutoTradePlusController {
         }
     }
 
-    private void handleMerchantScreen(ModConfig config, MinecraftClient client, PlayerEntity player) {
+    private void handleMerchantScreen(ModConfig config, Minecraft client, Player player) {
         if (!config.enabled || config.fishingMode || shouldPauseForSneaking(config, player)) {
             return;
         }
@@ -113,14 +113,14 @@ public class AutoTradePlusController {
         }
 
         if (result.failed()) {
-            debug(config, player, Text.translatable("text.autotrade-plus.debug.itemscroller_failed").formatted(Formatting.RED));
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.itemscroller_failed").withStyle(ChatFormatting.RED));
         } else if (result.traded()) {
             pendingDropTicks = 5;
             sendTradeActionbar(player, "text.autotrade-plus.actionbar.trade_complete");
-            debug(config, player, Text.translatable("text.autotrade-plus.debug.favorite_trades_done").formatted(Formatting.GREEN));
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.favorite_trades_done").withStyle(ChatFormatting.GREEN));
         } else {
             sendTradeActionbar(player, "text.autotrade-plus.actionbar.no_favorite");
-            debug(config, player, Text.translatable("text.autotrade-plus.debug.no_favorite_trades").formatted(Formatting.YELLOW));
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.no_favorite_trades").withStyle(ChatFormatting.YELLOW));
         }
         completePendingTrade(config);
     }
@@ -144,16 +144,15 @@ public class AutoTradePlusController {
         pendingTradeTicks = 0;
     }
 
-    private void toggleEnabled(ModConfig config, PlayerEntity player) {
+    private void toggleEnabled(ModConfig config, Player player) {
         config.enabled = !config.enabled;
         ModConfigManager.save();
-        player.sendMessage(
-                Text.translatable(
+        player.sendSystemMessage(
+                Component.translatable(
                         "text.autotrade-plus.message.toggled",
-                        Text.translatable(config.fishingMode ? "text.autotrade-plus.mode.fishing" : "text.autotrade-plus.mode.trading"),
-                        Text.translatable(config.enabled ? "text.autotrade-plus.state.enabled" : "text.autotrade-plus.state.disabled")
-                ),
-                false
+                        Component.translatable(config.fishingMode ? "text.autotrade-plus.mode.fishing" : "text.autotrade-plus.mode.trading"),
+                        Component.translatable(config.enabled ? "text.autotrade-plus.state.enabled" : "text.autotrade-plus.state.disabled")
+                )
         );
 
         if (!config.enabled) {
@@ -161,44 +160,43 @@ public class AutoTradePlusController {
         }
     }
 
-    private boolean shouldPauseForSneaking(ModConfig config, PlayerEntity player) {
-        if (!player.isSneaking() || !config.sneak) {
+    private boolean shouldPauseForSneaking(ModConfig config, Player player) {
+        if (!player.isShiftKeyDown() || !config.sneak) {
             return false;
         }
         if (config.debug) {
-            player.sendMessage(
-                    Text.translatable(
+            player.sendSystemMessage(
+                    Component.translatable(
                             "text.autotrade-plus.debug.sneak_paused",
-                            Text.translatable(config.fishingMode ? "text.autotrade-plus.mode.fishing" : "text.autotrade-plus.mode.trading")
-                    ).formatted(Formatting.RED),
-                    false
+                            Component.translatable(config.fishingMode ? "text.autotrade-plus.mode.fishing" : "text.autotrade-plus.mode.trading")
+                    ).withStyle(ChatFormatting.RED)
             );
         }
         return true;
     }
 
-    private void handleVillagerTrading(ModConfig config, PlayerEntity player, ClientPlayerInteractionManager interaction) {
-        World world = player.getEntityWorld();
-        Vec3d center = new Vec3d(player.getX(), player.getY(), player.getZ());
-        Box box = new Box(
+    private void handleVillagerTrading(ModConfig config, Player player, MultiPlayerGameMode interaction) {
+        Level world = player.level();
+        Vec3 center = new Vec3(player.getX(), player.getY(), player.getZ());
+        AABB box = new AABB(
                 center.add(-config.tradeRange, -config.tradeRange, -config.tradeRange),
                 center.add(config.tradeRange, config.tradeRange, config.tradeRange)
         );
 
-        List<VillagerEntity> visibleVillagers = world.getEntitiesByClass(
-                VillagerEntity.class,
+        List<Villager> visibleVillagers = world.getEntitiesOfClass(
+                Villager.class,
                 box,
                 villager -> villager.isAlive()
                         && villager.distanceTo(player) <= config.tradeRange
                         && isAllowedProfession(villager, config)
         );
 
-        for (VillagerEntity villager : visibleVillagers) {
-            UUID uuid = villager.getUuid();
+        for (Villager villager : visibleVillagers) {
+            UUID uuid = villager.getUUID();
             if (!villagerOrderMap.containsKey(uuid)) {
                 villagerOrderMap.put(uuid, villagerOrderMap.size());
                 orderedVillagers.add(uuid);
-                debug(config, player, Text.translatable("text.autotrade-plus.debug.villager_queued", uuid.toString().substring(0, 8)));
+                debug(config, player, Component.translatable("text.autotrade-plus.debug.villager_queued", uuid.toString().substring(0, 8)));
             }
         }
 
@@ -210,8 +208,8 @@ public class AutoTradePlusController {
         while (checked < orderedVillagers.size()) {
             startRoundIfNeeded(config, player);
             UUID targetUuid = orderedVillagers.get(currentIndex);
-            Optional<VillagerEntity> target = visibleVillagers.stream()
-                    .filter(villager -> villager.getUuid().equals(targetUuid))
+            Optional<Villager> target = visibleVillagers.stream()
+                    .filter(villager -> villager.getUUID().equals(targetUuid))
                     .findFirst();
 
             if (target.isPresent()) {
@@ -226,32 +224,32 @@ public class AutoTradePlusController {
         perTargetCooldown = 5;
     }
 
-    private void startRoundIfNeeded(ModConfig config, PlayerEntity player) {
+    private void startRoundIfNeeded(ModConfig config, Player player) {
         if (currentIndex == 0 && roundStartTick == -1) {
             roundStartTick = totalGameTick;
-            debug(config, player, Text.translatable("text.autotrade-plus.debug.round_started").formatted(Formatting.GREEN));
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.round_started").withStyle(ChatFormatting.GREEN));
         }
     }
 
     private void tradeWith(
             ModConfig config,
-            PlayerEntity player,
-            ClientPlayerInteractionManager interaction,
-            VillagerEntity target,
+            Player player,
+            MultiPlayerGameMode interaction,
+            Villager target,
             UUID targetUuid
     ) {
         int targetPosition = currentIndex + 1;
         int targetTotal = orderedVillagers.size();
         pendingTrade = TradeContext.from(target, targetPosition, targetTotal);
         pendingTradeTicks = 0;
-        interaction.interactEntity(player, target, Hand.MAIN_HAND);
-        debug(config, player, Text.translatable(
+        interaction.interact(player, target, new EntityHitResult(target), InteractionHand.MAIN_HAND);
+        debug(config, player, Component.translatable(
                 "text.autotrade-plus.debug.trade_villager",
                 targetPosition,
                 targetTotal,
                 targetUuid.toString().substring(0, 8),
                 String.format("%.2f", target.distanceTo(player))
-        ).formatted(Formatting.GREEN));
+        ).withStyle(ChatFormatting.GREEN));
 
         perTargetCooldown = config.villagerCooldownTicks;
     }
@@ -265,15 +263,15 @@ public class AutoTradePlusController {
         }
     }
 
-    private void sendTradeActionbar(PlayerEntity player, String translationKey) {
-        player.sendMessage(
-                Text.translatable(
+    private void sendTradeActionbar(Player player, String translationKey) {
+        Minecraft.getInstance().gui.setOverlayMessage(
+                Component.translatable(
                         translationKey,
                         pendingTrade.professionText(),
                         pendingTrade.position(),
                         pendingTrade.total()
                 ),
-                true
+                false
         );
     }
 
@@ -311,8 +309,8 @@ public class AutoTradePlusController {
         List<Item> items = new ArrayList<>();
         for (String idText : currentItems.split("[,，]")) {
             Identifier id = Identifier.tryParse(idText.trim());
-            if (id != null && Registries.ITEM.containsId(id)) {
-                Item item = Registries.ITEM.get(id);
+            if (id != null && BuiltInRegistries.ITEM.containsKey(id)) {
+                Item item = BuiltInRegistries.ITEM.getValue(id);
                 if (item != Items.AIR) {
                     items.add(item);
                 }
@@ -324,22 +322,22 @@ public class AutoTradePlusController {
         return cachedDropItems;
     }
 
-    private void handleFishingMode(ModConfig config, PlayerEntity player, ClientPlayerInteractionManager interaction) {
-        ItemStack mainHandStack = player.getMainHandStack();
+    private void handleFishingMode(ModConfig config, Player player, MultiPlayerGameMode interaction) {
+        ItemStack mainHandStack = player.getMainHandItem();
         if (mainHandStack.getItem() != Items.WATER_BUCKET) {
             perTargetCooldown = 20;
             return;
         }
 
-        World world = player.getEntityWorld();
-        Vec3d center = new Vec3d(player.getX(), player.getY(), player.getZ());
-        Box box = new Box(
+        Level world = player.level();
+        Vec3 center = new Vec3(player.getX(), player.getY(), player.getZ());
+        AABB box = new AABB(
                 center.add(-config.tradeRange, -config.tradeRange, -config.tradeRange),
                 center.add(config.tradeRange, config.tradeRange, config.tradeRange)
         );
 
-        FishEntity nearest = world.getEntitiesByClass(
-                        FishEntity.class,
+        AbstractFish nearest = world.getEntitiesOfClass(
+                        AbstractFish.class,
                         box,
                         fish -> fish.isAlive() && fish.distanceTo(player) <= config.tradeRange
                 )
@@ -352,11 +350,11 @@ public class AutoTradePlusController {
             return;
         }
 
-        interaction.interactEntity(player, nearest, Hand.MAIN_HAND);
+        interaction.interact(player, nearest, new EntityHitResult(nearest), InteractionHand.MAIN_HAND);
         perTargetCooldown = config.villagerCooldownTicks;
     }
 
-    private boolean isAllowedProfession(VillagerEntity villager, ModConfig config) {
+    private boolean isAllowedProfession(Villager villager, ModConfig config) {
         if (VillagerProfessionCatalog.allowsAll(config.villagerProfession)) {
             return true;
         }
@@ -366,8 +364,8 @@ public class AutoTradePlusController {
             return true;
         }
 
-        RegistryEntry<VillagerProfession> professionEntry = villager.getVillagerData().profession();
-        Identifier id = Registries.VILLAGER_PROFESSION.getId(professionEntry.value());
+        Holder<VillagerProfession> professionEntry = villager.getVillagerData().profession();
+        Identifier id = BuiltInRegistries.VILLAGER_PROFESSION.getKey(professionEntry.value());
         return id != null && allowedIds.contains(id.toString());
     }
 
@@ -385,22 +383,22 @@ public class AutoTradePlusController {
         pendingTrade = TradeContext.empty();
     }
 
-    private void debug(ModConfig config, PlayerEntity player, Text message) {
+    private void debug(ModConfig config, Player player, Component message) {
         if (config.debug) {
-            player.sendMessage(message, false);
+            player.sendSystemMessage(message);
         }
     }
 
-    private boolean consumeKeyPress(KeyBinding keyBinding) {
+    private boolean consumeKeyPress(KeyMapping keyBinding) {
         boolean pressed = false;
-        while (keyBinding != null && keyBinding.wasPressed()) {
+        while (keyBinding != null && keyBinding.consumeClick()) {
             pressed = true;
         }
         return pressed;
     }
 
-    private void drainKeyPresses(KeyBinding keyBinding) {
-        while (keyBinding != null && keyBinding.wasPressed()) {
+    private void drainKeyPresses(KeyMapping keyBinding) {
+        while (keyBinding != null && keyBinding.consumeClick()) {
         }
     }
 
@@ -409,19 +407,19 @@ public class AutoTradePlusController {
             return new TradeContext(null, "", 0, 0);
         }
 
-        private static TradeContext from(VillagerEntity villager, int position, int total) {
-            RegistryEntry<VillagerProfession> professionEntry = villager.getVillagerData().profession();
-            Identifier id = Registries.VILLAGER_PROFESSION.getId(professionEntry.value());
-            return new TradeContext(villager.getUuid(), id == null ? "" : id.toString(), position, total);
+        private static TradeContext from(Villager villager, int position, int total) {
+            Holder<VillagerProfession> professionEntry = villager.getVillagerData().profession();
+            Identifier id = BuiltInRegistries.VILLAGER_PROFESSION.getKey(professionEntry.value());
+            return new TradeContext(villager.getUUID(), id == null ? "" : id.toString(), position, total);
         }
 
         private boolean isActive() {
             return targetUuid != null;
         }
 
-        private Text professionText() {
+        private Component professionText() {
             return professionId.isBlank()
-                    ? Text.translatable("text.autotrade-plus.profession.unknown")
+                    ? Component.translatable("text.autotrade-plus.profession.unknown")
                     : VillagerProfessionCatalog.displayTextForValue(professionId);
         }
     }

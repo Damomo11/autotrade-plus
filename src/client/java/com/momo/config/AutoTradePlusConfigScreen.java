@@ -1,41 +1,39 @@
 package com.momo.config;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.momo.AutoTradePlusClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gui.widget.TextWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 public class AutoTradePlusConfigScreen extends Screen {
     private final Screen parent;
     private final ModConfig config;
 
-    private TextFieldWidget tradeRangeField;
-    private TextFieldWidget tradeCooldownField;
-    private TextFieldWidget villagerCooldownField;
-    private ButtonWidget professionButton;
-    private ButtonWidget dropItemsButton;
-    private ButtonWidget enabledButton;
-    private ButtonWidget sneakButton;
-    private ButtonWidget fishingButton;
-    private ButtonWidget debugButton;
-    private ButtonWidget dropModeButton;
-    private ButtonWidget toggleKeyButton;
-    private ButtonWidget openConfigKeyButton;
-    private KeyBinding editingKeyBinding;
-    private ButtonWidget editingKeyButton;
+    private EditBox tradeRangeField;
+    private EditBox tradeCooldownField;
+    private EditBox villagerCooldownField;
+    private Button professionButton;
+    private Button dropItemsButton;
+    private Button enabledButton;
+    private Button sneakButton;
+    private Button fishingButton;
+    private Button debugButton;
+    private Button dropModeButton;
+    private Button toggleKeyButton;
+    private Button openConfigKeyButton;
+    private KeyMapping editingKeyBinding;
+    private Button editingKeyButton;
 
     public AutoTradePlusConfigScreen(Screen parent) {
-        super(Text.translatable("text.autoconfig.autotrade-plus.title"));
+        super(Component.translatable("text.autoconfig.autotrade-plus.title"));
         this.parent = parent;
         this.config = ModConfigManager.get();
     }
@@ -51,15 +49,15 @@ public class AutoTradePlusConfigScreen extends Screen {
         int y = 42;
         int rowGap = 29;
 
-        addDrawableChild(new TextWidget(0, 12, this.width, 18, this.title, this.textRenderer));
+        addRenderableWidget(new StringWidget(0, 12, this.width, 18, this.title, this.font));
 
         this.professionButton = addButtonRow(
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.villagerProfession"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.villagerProfession"),
                 summarizeProfession(config.villagerProfession),
-                button -> this.client.setScreen(OptionMultiSelectScreen.professions(this, config.villagerProfession, value -> {
+                button -> this.minecraft.setScreen(OptionMultiSelectScreen.professions(this, config.villagerProfession, value -> {
                     config.villagerProfession = value;
                     updateDynamicMessages();
                 }))
@@ -68,7 +66,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.enabled"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.enabled"),
                 boolText(config.enabled),
                 button -> {
                     config.enabled = !config.enabled;
@@ -81,14 +79,14 @@ public class AutoTradePlusConfigScreen extends Screen {
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.tradeRange"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.tradeRange"),
                 Double.toString(config.tradeRange)
         );
         this.sneakButton = addButtonRow(
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.sneak"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.sneak"),
                 boolText(config.sneak),
                 button -> {
                     config.sneak = !config.sneak;
@@ -101,14 +99,14 @@ public class AutoTradePlusConfigScreen extends Screen {
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.tradeCooldownTicks"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.tradeCooldownTicks"),
                 Integer.toString(config.tradeCooldownTicks)
         );
         this.fishingButton = addButtonRow(
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.fishingMode"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.fishingMode"),
                 boolText(config.fishingMode),
                 button -> {
                     config.fishingMode = !config.fishingMode;
@@ -121,14 +119,14 @@ public class AutoTradePlusConfigScreen extends Screen {
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.villagerCooldownTicks"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.villagerCooldownTicks"),
                 Integer.toString(config.villagerCooldownTicks)
         );
         this.debugButton = addButtonRow(
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.debug"),
+                Component.translatable("text.autoconfig.autotrade-plus.option.debug"),
                 boolText(config.debug),
                 button -> {
                     config.debug = !config.debug;
@@ -141,8 +139,8 @@ public class AutoTradePlusConfigScreen extends Screen {
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.dropMode"),
-                Text.translatable(config.dropMode.translationKey()),
+                Component.translatable("text.autoconfig.autotrade-plus.option.dropMode"),
+                Component.translatable(config.dropMode.translationKey()),
                 button -> {
                     config.dropMode = config.dropMode == ModConfig.DropMode.DISABLED
                             ? ModConfig.DropMode.AFTER_TRADE
@@ -154,9 +152,9 @@ public class AutoTradePlusConfigScreen extends Screen {
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("text.autoconfig.autotrade-plus.option.dropItems"),
-                summarize(config.dropItems, Text.translatable("text.autotrade-plus.none").getString()),
-                button -> this.client.setScreen(OptionMultiSelectScreen.items(this, config.dropItems, value -> {
+                Component.translatable("text.autoconfig.autotrade-plus.option.dropItems"),
+                summarize(config.dropItems, Component.translatable("text.autotrade-plus.none").getString()),
+                button -> this.minecraft.setScreen(OptionMultiSelectScreen.items(this, config.dropItems, value -> {
                     config.dropItems = value;
                     updateDynamicMessages();
                 }))
@@ -167,7 +165,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 leftColumn,
                 y,
                 columnWidth,
-                Text.translatable("key.autotrade-plus.toggle"),
+                Component.translatable("key.autotrade-plus.toggle"),
                 getKeyText(AutoTradePlusClient.toggleKey),
                 button -> startEditingKey(AutoTradePlusClient.toggleKey, button)
         );
@@ -175,40 +173,26 @@ public class AutoTradePlusConfigScreen extends Screen {
                 rightColumn,
                 y,
                 columnWidth,
-                Text.translatable("key.autotrade-plus.open_config"),
+                Component.translatable("key.autotrade-plus.open_config"),
                 getKeyText(AutoTradePlusClient.openConfigKey),
                 button -> startEditingKey(AutoTradePlusClient.openConfigKey, button)
         );
 
         int buttonY = Math.min(this.height - 28, y + rowGap + 12);
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> finish())
-                .dimensions(this.width / 2 - 104, buttonY, 100, 20)
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> finish())
+                .bounds(this.width / 2 - 104, buttonY, 100, 20)
                 .build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.cancel"), button -> this.client.setScreen(this.parent))
-                .dimensions(this.width / 2 + 4, buttonY, 100, 20)
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.setScreen(this.parent))
+                .bounds(this.width / 2 + 4, buttonY, 100, 20)
                 .build());
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public boolean keyPressed(KeyEvent input) {
         if (this.editingKeyBinding != null) {
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer,
-                    Text.translatable("text.autotrade-plus.keybind.waiting"),
-                    this.width / 2,
-                    this.height - 50,
-                    0xFFFF55
-            );
-        }
-    }
-
-    @Override
-    public boolean keyPressed(KeyInput input) {
-        if (this.editingKeyBinding != null) {
-            this.editingKeyBinding.setBoundKey(input.key() == 256 ? InputUtil.UNKNOWN_KEY : InputUtil.fromKeyCode(input));
-            KeyBinding.updateKeysByCode();
-            this.client.options.write();
+            this.editingKeyBinding.setKey(input.key() == 256 ? InputConstants.UNKNOWN : InputConstants.getKey(input));
+            KeyMapping.resetMapping();
+            this.minecraft.options.save();
             this.editingKeyBinding = null;
             this.editingKeyButton = null;
             updateDynamicMessages();
@@ -218,7 +202,7 @@ public class AutoTradePlusConfigScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (this.editingKeyBinding != null) {
             this.editingKeyBinding = null;
             this.editingKeyButton = null;
@@ -228,92 +212,92 @@ public class AutoTradePlusConfigScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         finish();
     }
 
-    private TextFieldWidget addTextFieldRow(int x, int y, int width, Text label, String value) {
+    private EditBox addTextFieldRow(int x, int y, int width, Component label, String value) {
         addLabelWidget(x, y, label);
-        TextFieldWidget field = new TextFieldWidget(this.textRenderer, x + 128, y, width - 128, 20, label);
-        field.setText(value);
+        EditBox field = new EditBox(this.font, x + 128, y, width - 128, 20, label);
+        field.setValue(value);
         field.setMaxLength(16);
-        return addDrawableChild(field);
+        return addRenderableWidget(field);
     }
 
-    private ButtonWidget addButtonRow(int x, int y, int width, Text label, Text value, ButtonWidget.PressAction action) {
-        return addDrawableChild(ButtonWidget.builder(rowText(label, value), action)
-                .dimensions(x, y, width, 20)
+    private Button addButtonRow(int x, int y, int width, Component label, Component value, Button.OnPress action) {
+        return addRenderableWidget(Button.builder(rowText(label, value), action)
+                .bounds(x, y, width, 20)
                 .build());
     }
 
-    private void addLabelWidget(int x, int y, Text label) {
-        ButtonWidget labelWidget = ButtonWidget.builder(label, button -> {
+    private void addLabelWidget(int x, int y, Component label) {
+        Button labelWidget = Button.builder(label, button -> {
                 })
-                .dimensions(x, y, 124, 20)
+                .bounds(x, y, 124, 20)
                 .build();
         labelWidget.active = false;
-        addDrawableChild(labelWidget);
+        addRenderableWidget(labelWidget);
     }
 
-    private void startEditingKey(KeyBinding keyBinding, ButtonWidget button) {
+    private void startEditingKey(KeyMapping keyBinding, Button button) {
         if (keyBinding == null) {
             return;
         }
         this.editingKeyBinding = keyBinding;
         this.editingKeyButton = button;
-        button.setMessage(Text.translatable("text.autotrade-plus.keybind.press"));
+        button.setMessage(Component.translatable("text.autotrade-plus.keybind.press"));
     }
 
     private void updateDynamicMessages() {
         if (this.professionButton != null) {
             this.professionButton.setMessage(rowText(
-                    Text.translatable("text.autoconfig.autotrade-plus.option.villagerProfession"),
+                    Component.translatable("text.autoconfig.autotrade-plus.option.villagerProfession"),
                     summarizeProfession(config.villagerProfession)
             ));
         }
         if (this.dropItemsButton != null) {
             this.dropItemsButton.setMessage(rowText(
-                    Text.translatable("text.autoconfig.autotrade-plus.option.dropItems"),
-                    summarize(config.dropItems, Text.translatable("text.autotrade-plus.none").getString())
+                    Component.translatable("text.autoconfig.autotrade-plus.option.dropItems"),
+                    summarize(config.dropItems, Component.translatable("text.autotrade-plus.none").getString())
             ));
         }
         if (this.enabledButton != null) {
-            this.enabledButton.setMessage(rowText(Text.translatable("text.autoconfig.autotrade-plus.option.enabled"), boolText(config.enabled)));
+            this.enabledButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.enabled"), boolText(config.enabled)));
         }
         if (this.sneakButton != null) {
-            this.sneakButton.setMessage(rowText(Text.translatable("text.autoconfig.autotrade-plus.option.sneak"), boolText(config.sneak)));
+            this.sneakButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.sneak"), boolText(config.sneak)));
         }
         if (this.fishingButton != null) {
-            this.fishingButton.setMessage(rowText(Text.translatable("text.autoconfig.autotrade-plus.option.fishingMode"), boolText(config.fishingMode)));
+            this.fishingButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.fishingMode"), boolText(config.fishingMode)));
         }
         if (this.debugButton != null) {
-            this.debugButton.setMessage(rowText(Text.translatable("text.autoconfig.autotrade-plus.option.debug"), boolText(config.debug)));
+            this.debugButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.debug"), boolText(config.debug)));
         }
         if (this.dropModeButton != null) {
             this.dropModeButton.setMessage(rowText(
-                    Text.translatable("text.autoconfig.autotrade-plus.option.dropMode"),
-                    Text.translatable(config.dropMode.translationKey())
+                    Component.translatable("text.autoconfig.autotrade-plus.option.dropMode"),
+                    Component.translatable(config.dropMode.translationKey())
             ));
         }
         if (this.toggleKeyButton != null && this.editingKeyButton != this.toggleKeyButton) {
-            this.toggleKeyButton.setMessage(rowText(Text.translatable("key.autotrade-plus.toggle"), getKeyText(AutoTradePlusClient.toggleKey)));
+            this.toggleKeyButton.setMessage(rowText(Component.translatable("key.autotrade-plus.toggle"), getKeyText(AutoTradePlusClient.toggleKey)));
         }
         if (this.openConfigKeyButton != null && this.editingKeyButton != this.openConfigKeyButton) {
-            this.openConfigKeyButton.setMessage(rowText(Text.translatable("key.autotrade-plus.open_config"), getKeyText(AutoTradePlusClient.openConfigKey)));
+            this.openConfigKeyButton.setMessage(rowText(Component.translatable("key.autotrade-plus.open_config"), getKeyText(AutoTradePlusClient.openConfigKey)));
         }
     }
 
     private void finish() {
         applyNumericFields();
         ModConfigManager.save();
-        this.client.options.write();
-        this.client.setScreen(this.parent);
+        this.minecraft.options.save();
+        this.minecraft.setScreen(this.parent);
     }
 
     private void applyNumericFields() {
-        config.tradeRange = Math.max(0.0, parseDouble(this.tradeRangeField.getText(), config.tradeRange));
-        config.tradeCooldownTicks = Math.max(0, parseInt(this.tradeCooldownField.getText(), config.tradeCooldownTicks));
-        config.villagerCooldownTicks = Math.max(0, parseInt(this.villagerCooldownField.getText(), config.villagerCooldownTicks));
+        config.tradeRange = Math.max(0.0, parseDouble(this.tradeRangeField.getValue(), config.tradeRange));
+        config.tradeCooldownTicks = Math.max(0, parseInt(this.tradeCooldownField.getValue(), config.tradeCooldownTicks));
+        config.villagerCooldownTicks = Math.max(0, parseInt(this.villagerCooldownField.getValue(), config.villagerCooldownTicks));
     }
 
     private static double parseDouble(String value, double fallback) {
@@ -332,17 +316,17 @@ public class AutoTradePlusConfigScreen extends Screen {
         }
     }
 
-    private Text getKeyText(KeyBinding keyBinding) {
-        return keyBinding == null ? Text.translatable("text.autotrade-plus.none") : keyBinding.getBoundKeyLocalizedText();
+    private Component getKeyText(KeyMapping keyBinding) {
+        return keyBinding == null ? Component.translatable("text.autotrade-plus.none") : keyBinding.getTranslatedKeyMessage();
     }
 
-    private static Text boolText(boolean value) {
-        return Text.translatable(value ? "options.on" : "options.off");
+    private static Component boolText(boolean value) {
+        return Component.translatable(value ? "options.on" : "options.off");
     }
 
-    private Text summarize(String value, String emptyValue) {
+    private Component summarize(String value, String emptyValue) {
         if (value == null || value.isBlank()) {
-            return Text.literal(emptyValue);
+            return Component.literal(emptyValue);
         }
         String[] parts = value.split("[,，]");
         int count = 0;
@@ -358,19 +342,19 @@ public class AutoTradePlusConfigScreen extends Screen {
             count++;
         }
         if (count <= 1) {
-            return Text.literal(first.isEmpty() ? emptyValue : first);
+            return Component.literal(first.isEmpty() ? emptyValue : first);
         }
-        return Text.translatable("text.autotrade-plus.selection.summary", first, count);
+        return Component.translatable("text.autotrade-plus.selection.summary", first, count);
     }
 
-    private Text summarizeProfession(String value) {
+    private Component summarizeProfession(String value) {
         String normalized = VillagerProfessionCatalog.normalizeSelection(value);
         if (VillagerProfessionCatalog.ALL_VALUE.equals(normalized)) {
             return VillagerProfessionCatalog.displayTextForValue(VillagerProfessionCatalog.ALL_VALUE);
         }
         String[] parts = normalized.split("[,，]");
         int count = 0;
-        Text first = Text.empty();
+        Component first = Component.empty();
         for (String part : parts) {
             String trimmed = part.trim();
             if (trimmed.isEmpty()) {
@@ -384,11 +368,11 @@ public class AutoTradePlusConfigScreen extends Screen {
         if (count <= 1) {
             return count == 0 ? VillagerProfessionCatalog.displayTextForValue(VillagerProfessionCatalog.ALL_VALUE) : first;
         }
-        return Text.translatable("text.autotrade-plus.selection.summary", first.getString(), count);
+        return Component.translatable("text.autotrade-plus.selection.summary", first.getString(), count);
     }
 
-    private static Text rowText(Text label, Text value) {
-        return Text.literal(label.getString() + ": " + value.getString());
+    private static Component rowText(Component label, Component value) {
+        return Component.literal(label.getString() + ": " + value.getString());
     }
 
 }

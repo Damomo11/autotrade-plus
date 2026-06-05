@@ -1,34 +1,33 @@
 package com.momo.compat;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.MerchantScreen;
-import net.minecraft.screen.MerchantScreenHandler;
-
 import java.lang.reflect.Method;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.MerchantScreen;
+import net.minecraft.world.inventory.MerchantMenu;
 
 public final class ItemScrollerFavoriteTrader {
     private int handledSyncId = -1;
     private boolean warned;
 
-    public Result tryTradeAndClose(MinecraftClient client) {
-        if (client.player == null || !(client.currentScreen instanceof MerchantScreen screen)) {
+    public Result tryTradeAndClose(Minecraft client) {
+        if (client.player == null || !(client.screen instanceof MerchantScreen screen)) {
             handledSyncId = -1;
             return Result.notMerchant();
         }
 
-        MerchantScreenHandler handler = screen.getScreenHandler();
-        if (handler.syncId == handledSyncId) {
+        MerchantMenu handler = screen.getMenu();
+        if (handler.containerId == handledSyncId) {
             return Result.alreadyHandled();
         }
 
-        handledSyncId = handler.syncId;
+        handledSyncId = handler.containerId;
         try {
             boolean hasFavorites = hasFavoriteTrades(handler);
             if (hasFavorites) {
                 tradeFavorites();
             }
 
-            client.player.closeHandledScreen();
+            client.player.closeContainer();
             return Result.handled(hasFavorites);
         } catch (ReflectiveOperationException | LinkageError error) {
             if (!warned) {
@@ -39,10 +38,10 @@ public final class ItemScrollerFavoriteTrader {
         }
     }
 
-    private boolean hasFavoriteTrades(MerchantScreenHandler handler) throws ReflectiveOperationException {
+    private boolean hasFavoriteTrades(MerchantMenu handler) throws ReflectiveOperationException {
         Class<?> storageClass = Class.forName("fi.dy.masa.itemscroller.villager.VillagerDataStorage");
         Object storage = storageClass.getMethod("getInstance").invoke(null);
-        Method getFavorites = storageClass.getMethod("getFavoritesForCurrentVillager", MerchantScreenHandler.class);
+        Method getFavorites = storageClass.getMethod("getFavoritesForCurrentVillager", MerchantMenu.class);
         Object favoriteData = getFavorites.invoke(storage, handler);
         Object favorites = favoriteData.getClass().getMethod("favorites").invoke(favoriteData);
         return !(Boolean) favorites.getClass().getMethod("isEmpty").invoke(favorites);

@@ -1,15 +1,5 @@
 package com.momo.config;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gui.widget.TextWidget;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -17,6 +7,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.StringWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 public class OptionMultiSelectScreen extends Screen {
     private static final int ROW_HEIGHT = 24;
@@ -28,15 +27,15 @@ public class OptionMultiSelectScreen extends Screen {
     private final Set<String> selected;
     private final Consumer<String> saveConsumer;
     private final boolean professionMode;
-    private final Text emptyText;
+    private final Component emptyText;
 
-    private TextFieldWidget searchField;
-    private TextWidget selectedCountWidget;
-    private ButtonWidget addCustomButton;
+    private EditBox searchField;
+    private StringWidget selectedCountWidget;
+    private Button addCustomButton;
     private List<Option> availableOptions = List.of();
     private List<Option> selectedOptions = List.of();
-    private final List<ButtonWidget> availableButtons = new ArrayList<>();
-    private final List<ButtonWidget> selectedButtons = new ArrayList<>();
+    private final List<Button> availableButtons = new ArrayList<>();
+    private final List<Button> selectedButtons = new ArrayList<>();
     private int availableScroll;
     private int selectedScroll;
 
@@ -51,8 +50,8 @@ public class OptionMultiSelectScreen extends Screen {
                 VillagerProfessionCatalog.searchTextForValue(VillagerProfessionCatalog.ALL_VALUE),
                 null
         ));
-        for (var profession : Registries.VILLAGER_PROFESSION.stream().toList()) {
-            Identifier id = Registries.VILLAGER_PROFESSION.getId(profession);
+        for (var profession : BuiltInRegistries.VILLAGER_PROFESSION.stream().toList()) {
+            Identifier id = BuiltInRegistries.VILLAGER_PROFESSION.getKey(profession);
             if (id == null) {
                 continue;
             }
@@ -70,49 +69,49 @@ public class OptionMultiSelectScreen extends Screen {
         }
         return new OptionMultiSelectScreen(
                 parent,
-                Text.translatable("text.autotrade-plus.selector.professions"),
+                Component.translatable("text.autotrade-plus.selector.professions"),
                 options,
                 selected,
                 saveConsumer,
                 true,
-                Text.translatable("text.autotrade-plus.selector.no_professions")
+                Component.translatable("text.autotrade-plus.selector.no_professions")
         );
     }
 
     public static OptionMultiSelectScreen items(Screen parent, String currentValue, Consumer<String> saveConsumer) {
         List<Option> options = new ArrayList<>();
-        for (Item item : Registries.ITEM.stream().toList()) {
+        for (Item item : BuiltInRegistries.ITEM.stream().toList()) {
             if (item == Items.AIR) {
                 continue;
             }
-            Identifier id = Registries.ITEM.getId(item);
+            Identifier id = BuiltInRegistries.ITEM.getKey(item);
             if (id == null) {
                 continue;
             }
-            Text name = item.getName();
-            String searchText = (id + " " + name.getString() + " " + item.getTranslationKey()).toLowerCase(Locale.ROOT);
+            Component name = item.getName(new net.minecraft.world.item.ItemStack(item));
+            String searchText = (id + " " + name.getString() + " " + item.getDescriptionId()).toLowerCase(Locale.ROOT);
             options.add(new Option(id.toString(), name, searchText, item));
         }
         options.sort(Comparator.comparing(option -> option.value));
         return new OptionMultiSelectScreen(
                 parent,
-                Text.translatable("text.autotrade-plus.selector.items"),
+                Component.translatable("text.autotrade-plus.selector.items"),
                 options,
                 parseCsv(currentValue),
                 saveConsumer,
                 false,
-                Text.translatable("text.autotrade-plus.selector.no_items")
+                Component.translatable("text.autotrade-plus.selector.no_items")
         );
     }
 
     private OptionMultiSelectScreen(
             Screen parent,
-            Text title,
+            Component title,
             List<Option> allOptions,
             Set<String> selected,
             Consumer<String> saveConsumer,
             boolean professionMode,
-            Text emptyText
+            Component emptyText
     ) {
         super(title);
         this.parent = parent;
@@ -127,56 +126,56 @@ public class OptionMultiSelectScreen extends Screen {
     protected void init() {
         int contentWidth = Math.min(420, this.width - 32);
         int left = (this.width - contentWidth) / 2;
-        addDrawableChild(new TextWidget(0, 10, this.width, 18, this.title, this.textRenderer));
-        this.searchField = new TextFieldWidget(
-                this.textRenderer,
+        addRenderableWidget(new StringWidget(0, 10, this.width, 18, this.title, this.font));
+        this.searchField = new EditBox(
+                this.font,
                 left,
                 32,
                 contentWidth,
                 20,
-                Text.translatable("text.autotrade-plus.selector.search")
+                Component.translatable("text.autotrade-plus.selector.search")
         );
-        this.searchField.setPlaceholder(Text.translatable("text.autotrade-plus.selector.search"));
-        this.searchField.setChangedListener(value -> {
+        this.searchField.setHint(Component.translatable("text.autotrade-plus.selector.search"));
+        this.searchField.setResponder(value -> {
             this.availableScroll = 0;
             this.selectedScroll = 0;
             updateOptions();
         });
-        addDrawableChild(this.searchField);
+        addRenderableWidget(this.searchField);
 
         int columnWidth = getColumnWidth();
         int listTop = getListTop();
-        addDrawableChild(ButtonWidget.builder(Text.translatable("text.autotrade-plus.selector.available"), button -> {
+        addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.available"), button -> {
                 })
-                .dimensions(left, listTop - 24, columnWidth, 20)
+                .bounds(left, listTop - 24, columnWidth, 20)
                 .build()).active = false;
-        addDrawableChild(ButtonWidget.builder(Text.translatable("text.autotrade-plus.selector.selected"), button -> {
+        addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.selected"), button -> {
                 })
-                .dimensions(left + columnWidth + COLUMN_GAP, listTop - 24, columnWidth, 20)
+                .bounds(left + columnWidth + COLUMN_GAP, listTop - 24, columnWidth, 20)
                 .build()).active = false;
 
         int buttonY = this.height - 28;
         int actionWidth = Math.max(40, (contentWidth - 24) / 5);
-        addDrawableChild(ButtonWidget.builder(Text.translatable("text.autotrade-plus.selector.add_all"), button -> addAllVisible())
-                .dimensions(left, buttonY, actionWidth, 20)
+        addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.add_all"), button -> addAllVisible())
+                .bounds(left, buttonY, actionWidth, 20)
                 .build());
-        this.addCustomButton = addDrawableChild(ButtonWidget.builder(Text.translatable("text.autotrade-plus.selector.add_custom"), button -> {
+        this.addCustomButton = addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.add_custom"), button -> {
                     addCustomSearchValue();
                     updateOptions();
                 })
-                .dimensions(left + actionWidth + 6, buttonY, actionWidth, 20)
+                .bounds(left + actionWidth + 6, buttonY, actionWidth, 20)
                 .build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("text.autotrade-plus.selector.clear"), button -> {
+        addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.clear"), button -> {
                     this.selected.clear();
                     updateOptions();
                 })
-                .dimensions(left + (actionWidth + 6) * 2, buttonY, actionWidth, 20)
+                .bounds(left + (actionWidth + 6) * 2, buttonY, actionWidth, 20)
                 .build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> finish())
-                .dimensions(left + (actionWidth + 6) * 3, buttonY, actionWidth, 20)
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> finish())
+                .bounds(left + (actionWidth + 6) * 3, buttonY, actionWidth, 20)
                 .build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.cancel"), button -> this.client.setScreen(this.parent))
-                .dimensions(left + (actionWidth + 6) * 4, buttonY, actionWidth, 20)
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.setScreen(this.parent))
+                .bounds(left + (actionWidth + 6) * 4, buttonY, actionWidth, 20)
                 .build());
 
         int leftColumn = left;
@@ -184,23 +183,23 @@ public class OptionMultiSelectScreen extends Screen {
         int visibleRows = getVisibleRows();
         for (int row = 0; row < visibleRows; row++) {
             final int rowIndex = row;
-            ButtonWidget availableButton = ButtonWidget.builder(Text.empty(), button -> addAvailable(rowIndex))
-                    .dimensions(leftColumn, listTop + row * ROW_HEIGHT, columnWidth, 20)
+            Button availableButton = Button.builder(Component.empty(), button -> addAvailable(rowIndex))
+                    .bounds(leftColumn, listTop + row * ROW_HEIGHT, columnWidth, 20)
                     .build();
-            this.availableButtons.add(addDrawableChild(availableButton));
+            this.availableButtons.add(addRenderableWidget(availableButton));
 
-            ButtonWidget selectedButton = ButtonWidget.builder(Text.empty(), button -> removeSelected(rowIndex))
-                    .dimensions(rightColumn, listTop + row * ROW_HEIGHT, columnWidth, 20)
+            Button selectedButton = Button.builder(Component.empty(), button -> removeSelected(rowIndex))
+                    .bounds(rightColumn, listTop + row * ROW_HEIGHT, columnWidth, 20)
                     .build();
-            this.selectedButtons.add(addDrawableChild(selectedButton));
+            this.selectedButtons.add(addRenderableWidget(selectedButton));
         }
-        this.selectedCountWidget = addDrawableChild(new TextWidget(
+        this.selectedCountWidget = addRenderableWidget(new StringWidget(
                 0,
                 this.height - 45,
                 this.width,
                 18,
-                Text.empty(),
-                this.textRenderer
+                Component.empty(),
+                this.font
         ));
 
         updateOptions();
@@ -221,12 +220,12 @@ public class OptionMultiSelectScreen extends Screen {
     }
 
     @Override
-    public void close() {
-        this.client.setScreen(this.parent);
+    public void onClose() {
+        this.minecraft.setScreen(this.parent);
     }
 
     private void updateOptions() {
-        String query = this.searchField == null ? "" : this.searchField.getText().trim().toLowerCase(Locale.ROOT);
+        String query = this.searchField == null ? "" : this.searchField.getValue().trim().toLowerCase(Locale.ROOT);
         List<Option> available = new ArrayList<>();
         List<Option> selectedResult = new ArrayList<>();
         Set<String> knownValues = new LinkedHashSet<>();
@@ -261,24 +260,24 @@ public class OptionMultiSelectScreen extends Screen {
         int visibleRows = this.availableButtons.size();
         for (int row = 0; row < visibleRows; row++) {
             updateColumnButton(this.availableButtons.get(row), this.availableOptions, this.availableScroll, row, "+ ", this.emptyText);
-            updateColumnButton(this.selectedButtons.get(row), this.selectedOptions, this.selectedScroll, row, "- ", Text.translatable("text.autotrade-plus.selector.no_selected"));
+            updateColumnButton(this.selectedButtons.get(row), this.selectedOptions, this.selectedScroll, row, "- ", Component.translatable("text.autotrade-plus.selector.no_selected"));
         }
         if (this.selectedCountWidget != null) {
-            this.selectedCountWidget.setMessage(Text.translatable("text.autotrade-plus.selector.selected_count", this.selected.size()));
+            this.selectedCountWidget.setMessage(Component.translatable("text.autotrade-plus.selector.selected_count", this.selected.size()));
         }
     }
 
-    private void updateColumnButton(ButtonWidget button, List<Option> options, int scroll, int row, String prefix, Text emptyText) {
+    private void updateColumnButton(Button button, List<Option> options, int scroll, int row, String prefix, Component emptyText) {
         int index = scroll + row;
         if (index >= options.size()) {
             button.visible = row == 0 && options.isEmpty();
             button.active = false;
-            button.setMessage(row == 0 ? emptyText : Text.empty());
+            button.setMessage(row == 0 ? emptyText : Component.empty());
             return;
         }
         button.visible = true;
         button.active = true;
-        button.setMessage(Text.literal(prefix + optionLabel(options.get(index))));
+        button.setMessage(Component.literal(prefix + optionLabel(options.get(index))));
     }
 
     private void addAvailable(int row) {
@@ -301,7 +300,7 @@ public class OptionMultiSelectScreen extends Screen {
         String label = option.item == null
                 ? option.display.getString()
                 : option.display.getString() + "  " + option.value;
-        return this.textRenderer.trimToWidth(label, getColumnWidth() - 24);
+        return this.font.plainSubstrByWidth(label, getColumnWidth() - 24);
     }
 
     private void add(Option option) {
@@ -332,7 +331,7 @@ public class OptionMultiSelectScreen extends Screen {
     }
 
     private String customValueFromSearch() {
-        return this.searchField == null ? null : normalizeCustomValue(this.searchField.getText());
+        return this.searchField == null ? null : normalizeCustomValue(this.searchField.getValue());
     }
 
     private static String normalizeCustomValue(String rawValue) {
@@ -398,7 +397,7 @@ public class OptionMultiSelectScreen extends Screen {
         } else {
             this.saveConsumer.accept(String.join(",", this.selected));
         }
-        this.client.setScreen(this.parent);
+        this.minecraft.setScreen(this.parent);
     }
 
     private int getListLeft() {
@@ -446,9 +445,9 @@ public class OptionMultiSelectScreen extends Screen {
     }
 
     private static Option customOption(String value) {
-        return new Option(value, Text.literal(value), value.toLowerCase(Locale.ROOT), null);
+        return new Option(value, Component.literal(value), value.toLowerCase(Locale.ROOT), null);
     }
 
-    private record Option(String value, Text display, String searchText, Item item) {
+    private record Option(String value, Component display, String searchText, Item item) {
     }
 }

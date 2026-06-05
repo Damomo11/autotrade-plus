@@ -1,13 +1,12 @@
 package com.momo.config;
 
-import net.minecraft.text.Text;
-
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.network.chat.Component;
 
 public final class VillagerProfessionCatalog {
     public static final String ALL_VALUE = "all";
@@ -95,9 +94,9 @@ public final class VillagerProfessionCatalog {
         return String.join(",", values);
     }
 
-    public static Text displayTextForValue(String value) {
+    public static Component displayTextForValue(String value) {
         Entry entry = ENTRY_BY_VALUE.get(canonicalKey(value));
-        return entry == null ? Text.literal(value) : entry.nameText();
+        return entry == null ? Component.literal(value) : entry.nameText();
     }
 
     public static String searchTextForValue(String value) {
@@ -135,14 +134,14 @@ public final class VillagerProfessionCatalog {
             String englishName,
             String shortName
     ) {
-        public Text displayText() {
+        public Component displayText() {
             return professionId == null
                     ? nameText().copy().append("  ").append(configValue)
                     : nameText().copy().append("  ").append(professionId);
         }
 
-        public Text nameText() {
-            return Text.translatable(translationKey);
+        public Component nameText() {
+            return Component.translatable(translationKey);
         }
 
         public String searchText() {

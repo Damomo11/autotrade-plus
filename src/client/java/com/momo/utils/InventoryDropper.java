@@ -1,23 +1,23 @@
 package com.momo.utils;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 public final class InventoryDropper {
-    private static final MinecraftClient CLIENT = MinecraftClient.getInstance();
+    private static final Minecraft CLIENT = Minecraft.getInstance();
 
     private InventoryDropper() {
     }
 
     public static void keepOnlyOne(Item item) {
-        if (CLIENT.player == null || CLIENT.interactionManager == null || CLIENT.player.isSpectator()) {
+        if (CLIENT.player == null || CLIENT.gameMode == null || CLIENT.player.isSpectator()) {
             return;
         }
 
-        for (int slot = 0; slot < CLIENT.player.getInventory().size(); slot++) {
-            ItemStack stack = CLIENT.player.getInventory().getStack(slot);
+        for (int slot = 0; slot < CLIENT.player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = CLIENT.player.getInventory().getItem(slot);
             if (!stack.isEmpty() && stack.getItem() == item && stack.getCount() > 1) {
                 dropOneAtATime(convertToScreenSlot(slot), stack.getCount() - 1);
             }
@@ -26,11 +26,11 @@ public final class InventoryDropper {
 
     private static void dropOneAtATime(int screenSlot, int count) {
         for (int i = 0; i < count; i++) {
-            CLIENT.interactionManager.clickSlot(
-                    CLIENT.player.currentScreenHandler.syncId,
+            CLIENT.gameMode.handleContainerInput(
+                    CLIENT.player.containerMenu.containerId,
                     screenSlot,
                     0,
-                    SlotActionType.THROW,
+                    ContainerInput.THROW,
                     CLIENT.player
             );
         }
