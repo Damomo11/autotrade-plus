@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "autotrade-plus",
+	"version": "${version}",
+	"name": "autotrade-plus",
+	"description": "Client-side villager auto trading and item drop helper.",
+	"authors": [
+		"Damomo1"
+	],
+	"license": "CC0-1.0",
+	"icon": "assets/autotrade-plus/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"com.momo.AutoTradePlus"
+		],
+		"client": [
+			"com.momo.AutoTradePlusClient"
+		],
+		"modmenu": [
+			"com.momo.config.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		{
+			"config": "autotrade-plus.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.14",
+		"minecraft": ">=1.20.1 <=1.21.11",
+		"java": ">=21",
+		"fabric-api": "*",
+		"cloth-config": "*",
+		"itemscroller": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}
