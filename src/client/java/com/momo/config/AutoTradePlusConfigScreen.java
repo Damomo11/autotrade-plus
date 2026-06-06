@@ -50,8 +50,9 @@ public class AutoTradePlusConfigScreen extends Screen {
         int columnWidth = (contentWidth - columnGap) / 2;
         int leftColumn = left;
         int rightColumn = left + columnWidth + columnGap;
-        int y = 42;
-        int rowGap = 29;
+        int buttonY = this.height - 28;
+        int rowGap = Math.min(29, Math.max(22, (buttonY - 52) / 6));
+        int y = Math.min(42, Math.max(24, buttonY - 28 - rowGap * 6));
 
         addDrawableChild(new TextWidget(0, 12, this.width, 18, this.title, this.textRenderer));
 
@@ -206,7 +207,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 button -> startEditingKey(AutoTradePlusClient.openConfigKey, button)
         );
 
-        int buttonY = Math.min(this.height - 28, y + rowGap + 12);
+        buttonY = Math.min(buttonY, y + rowGap + 12);
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> finish())
                 .dimensions(this.width / 2 - 104, buttonY, 100, 20)
                 .build());
