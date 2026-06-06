@@ -58,6 +58,12 @@ public class ModConfig implements ConfigData {
     public boolean debug = false;
 
     @ConfigEntry.Gui.Tooltip
+    public boolean autoCloseMerchantScreen = true;
+
+    @ConfigEntry.Gui.Tooltip
+    public boolean resumeTradeProgress = false;
+
+    @ConfigEntry.Gui.Tooltip
     public boolean enabled = false;
 
     @Override

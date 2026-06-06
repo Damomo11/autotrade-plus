@@ -5,12 +5,26 @@ import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.screen.MerchantScreenHandler;
 
 import java.lang.reflect.Method;
+import java.util.UUID;
 
 public final class ItemScrollerFavoriteTrader {
     private int handledSyncId = -1;
     private boolean warned;
 
-    public Result tryTradeAndClose(MinecraftClient client) {
+    public void rememberInteractionTarget(UUID villagerUuid) {
+        try {
+            Class<?> storageClass = Class.forName("fi.dy.masa.itemscroller.villager.VillagerDataStorage");
+            Object storage = storageClass.getMethod("getInstance").invoke(null);
+            storageClass.getMethod("setLastInteractedUUID", UUID.class).invoke(storage, villagerUuid);
+        } catch (ReflectiveOperationException | LinkageError error) {
+            if (!warned) {
+                warned = true;
+                error.printStackTrace();
+            }
+        }
+    }
+
+    public Result tryTrade(MinecraftClient client, boolean closeScreen) {
         if (client.player == null || !(client.currentScreen instanceof MerchantScreen screen)) {
             handledSyncId = -1;
             return Result.notMerchant();
@@ -28,7 +42,9 @@ public final class ItemScrollerFavoriteTrader {
                 tradeFavorites();
             }
 
-            client.player.closeHandledScreen();
+            if (closeScreen) {
+                client.player.closeHandledScreen();
+            }
             return Result.handled(hasFavorites);
         } catch (ReflectiveOperationException | LinkageError error) {
             if (!warned) {

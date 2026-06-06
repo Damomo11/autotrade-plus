@@ -28,6 +28,8 @@ public class AutoTradePlusConfigScreen extends Screen {
     private ButtonWidget sneakButton;
     private ButtonWidget fishingButton;
     private ButtonWidget debugButton;
+    private ButtonWidget autoCloseMerchantScreenButton;
+    private ButtonWidget resumeTradeProgressButton;
     private ButtonWidget dropModeButton;
     private ButtonWidget toggleKeyButton;
     private ButtonWidget openConfigKeyButton;
@@ -163,6 +165,30 @@ public class AutoTradePlusConfigScreen extends Screen {
         );
 
         y += rowGap;
+        this.autoCloseMerchantScreenButton = addButtonRow(
+                leftColumn,
+                y,
+                columnWidth,
+                Text.translatable("text.autoconfig.autotrade-plus.option.autoCloseMerchantScreen"),
+                boolText(config.autoCloseMerchantScreen),
+                button -> {
+                    config.autoCloseMerchantScreen = !config.autoCloseMerchantScreen;
+                    updateDynamicMessages();
+                }
+        );
+        this.resumeTradeProgressButton = addButtonRow(
+                rightColumn,
+                y,
+                columnWidth,
+                Text.translatable("text.autoconfig.autotrade-plus.option.resumeTradeProgress"),
+                boolText(config.resumeTradeProgress),
+                button -> {
+                    config.resumeTradeProgress = !config.resumeTradeProgress;
+                    updateDynamicMessages();
+                }
+        );
+
+        y += rowGap;
         this.toggleKeyButton = addButtonRow(
                 leftColumn,
                 y,
@@ -288,6 +314,18 @@ public class AutoTradePlusConfigScreen extends Screen {
         }
         if (this.debugButton != null) {
             this.debugButton.setMessage(rowText(Text.translatable("text.autoconfig.autotrade-plus.option.debug"), boolText(config.debug)));
+        }
+        if (this.autoCloseMerchantScreenButton != null) {
+            this.autoCloseMerchantScreenButton.setMessage(rowText(
+                    Text.translatable("text.autoconfig.autotrade-plus.option.autoCloseMerchantScreen"),
+                    boolText(config.autoCloseMerchantScreen)
+            ));
+        }
+        if (this.resumeTradeProgressButton != null) {
+            this.resumeTradeProgressButton.setMessage(rowText(
+                    Text.translatable("text.autoconfig.autotrade-plus.option.resumeTradeProgress"),
+                    boolText(config.resumeTradeProgress)
+            ));
         }
         if (this.dropModeButton != null) {
             this.dropModeButton.setMessage(rowText(
