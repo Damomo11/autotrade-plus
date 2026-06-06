@@ -3,6 +3,7 @@
   "package": "com.momo.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ClientPacketListenerMixin",
     "MinecraftClientMixin"
   ],
   "injectors": {

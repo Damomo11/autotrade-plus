@@ -44,6 +44,9 @@ public class AutoTradePlusController {
     private int totalGameTick;
     private int pendingDropTicks;
     private int pendingTradeTicks;
+    private int lastCompletedIndex = -1;
+    private boolean enabledStateInitialized;
+    private boolean lastKnownEnabled;
     private TradeContext pendingTrade = TradeContext.empty();
 
     private final Map<UUID, Integer> villagerOrderMap = new HashMap<>();
@@ -66,11 +69,11 @@ public class AutoTradePlusController {
         }
 
         processPendingDrop(config);
+        syncEnabledState(config);
 
         if (client.screen != null) {
             drainKeyPresses(AutoTradePlusClient.toggleKey);
             drainKeyPresses(AutoTradePlusClient.openConfigKey);
-            handleMerchantScreen(config, client, player);
             return;
         }
 
@@ -102,12 +105,20 @@ public class AutoTradePlusController {
         }
     }
 
-    private void handleMerchantScreen(ModConfig config, Minecraft client, Player player) {
+    public void onMerchantOffersUpdated() {
+        ModConfig config = ModConfigManager.get();
+        Minecraft client = Minecraft.getInstance();
+        Player player = client.player;
+
+        if (config == null || player == null) {
+            return;
+        }
+
         if (!config.enabled || config.fishingMode || shouldPauseForSneaking(config, player)) {
             return;
         }
 
-        ItemScrollerFavoriteTrader.Result result = favoriteTrader.tryTradeAndClose(client);
+        ItemScrollerFavoriteTrader.Result result = favoriteTrader.tryTrade(client, config.autoCloseMerchantScreen);
         if (!result.merchantScreen() || !result.handled()) {
             return;
         }
@@ -139,6 +150,7 @@ public class AutoTradePlusController {
     }
 
     private void completePendingTrade(ModConfig config) {
+        lastCompletedIndex = currentIndex;
         advanceCurrentIndex(config);
         pendingTrade = TradeContext.empty();
         pendingTradeTicks = 0;
@@ -147,6 +159,7 @@ public class AutoTradePlusController {
     private void toggleEnabled(ModConfig config, Player player) {
         config.enabled = !config.enabled;
         ModConfigManager.save();
+        handleEnabledStateChanged(config);
         player.sendSystemMessage(
                 Component.translatable(
                         "text.autotrade-plus.message.toggled",
@@ -154,8 +167,24 @@ public class AutoTradePlusController {
                         Component.translatable(config.enabled ? "text.autotrade-plus.state.enabled" : "text.autotrade-plus.state.disabled")
                 )
         );
+    }
 
-        if (!config.enabled) {
+    private void syncEnabledState(ModConfig config) {
+        if (!enabledStateInitialized) {
+            enabledStateInitialized = true;
+            lastKnownEnabled = config.enabled;
+            return;
+        }
+        if (lastKnownEnabled != config.enabled) {
+            handleEnabledStateChanged(config);
+        }
+    }
+
+    private void handleEnabledStateChanged(ModConfig config) {
+        lastKnownEnabled = config.enabled;
+        if (!config.enabled && config.resumeTradeProgress) {
+            pauseRoundStateForResume();
+        } else if (!config.enabled) {
             resetRoundState();
         }
     }
@@ -242,6 +271,7 @@ public class AutoTradePlusController {
         int targetTotal = orderedVillagers.size();
         pendingTrade = TradeContext.from(target, targetPosition, targetTotal);
         pendingTradeTicks = 0;
+        favoriteTrader.rememberInteractionTarget(targetUuid);
         interaction.interact(player, target, new EntityHitResult(target), InteractionHand.MAIN_HAND);
         debug(config, player, Component.translatable(
                 "text.autotrade-plus.debug.trade_villager",
@@ -373,6 +403,7 @@ public class AutoTradePlusController {
         roundCooldown = 0;
         perTargetCooldown = 0;
         currentIndex = 0;
+        lastCompletedIndex = -1;
         roundStartTick = -1;
         villagerOrderMap.clear();
         orderedVillagers.clear();
@@ -381,6 +412,26 @@ public class AutoTradePlusController {
         pendingDropTicks = 0;
         pendingTradeTicks = 0;
         pendingTrade = TradeContext.empty();
+    }
+
+    private void pauseRoundStateForResume() {
+        roundCooldown = 0;
+        perTargetCooldown = 0;
+        pendingTradeTicks = 0;
+        pendingTrade = TradeContext.empty();
+
+        if (orderedVillagers.isEmpty()) {
+            currentIndex = 0;
+            lastCompletedIndex = -1;
+            roundStartTick = -1;
+            return;
+        }
+
+        int resumeIndex = lastCompletedIndex >= 0 ? lastCompletedIndex : currentIndex;
+        currentIndex = Math.max(0, Math.min(resumeIndex, orderedVillagers.size() - 1));
+        if (currentIndex == 0) {
+            roundStartTick = -1;
+        }
     }
 
     private void debug(ModConfig config, Player player, Component message) {

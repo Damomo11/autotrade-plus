@@ -145,13 +145,14 @@ public class OptionMultiSelectScreen extends Screen {
 
         int columnWidth = getColumnWidth();
         int listTop = getListTop();
+        int listLeft = getListLeft();
         addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.available"), button -> {
                 })
-                .bounds(left, listTop - 24, columnWidth, 20)
+                .bounds(listLeft, listTop - 24, columnWidth, 20)
                 .build()).active = false;
         addRenderableWidget(Button.builder(Component.translatable("text.autotrade-plus.selector.selected"), button -> {
                 })
-                .bounds(left + columnWidth + COLUMN_GAP, listTop - 24, columnWidth, 20)
+                .bounds(listLeft + columnWidth + COLUMN_GAP, listTop - 24, columnWidth, 20)
                 .build()).active = false;
 
         int buttonY = this.height - 28;
@@ -178,8 +179,8 @@ public class OptionMultiSelectScreen extends Screen {
                 .bounds(left + (actionWidth + 6) * 4, buttonY, actionWidth, 20)
                 .build());
 
-        int leftColumn = left;
-        int rightColumn = left + columnWidth + COLUMN_GAP;
+        int leftColumn = listLeft;
+        int rightColumn = listLeft + columnWidth + COLUMN_GAP;
         int visibleRows = getVisibleRows();
         for (int row = 0; row < visibleRows; row++) {
             final int rowIndex = row;

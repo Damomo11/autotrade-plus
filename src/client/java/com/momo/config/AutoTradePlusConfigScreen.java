@@ -26,6 +26,8 @@ public class AutoTradePlusConfigScreen extends Screen {
     private Button sneakButton;
     private Button fishingButton;
     private Button debugButton;
+    private Button autoCloseMerchantScreenButton;
+    private Button resumeTradeProgressButton;
     private Button dropModeButton;
     private Button toggleKeyButton;
     private Button openConfigKeyButton;
@@ -46,8 +48,9 @@ public class AutoTradePlusConfigScreen extends Screen {
         int columnWidth = (contentWidth - columnGap) / 2;
         int leftColumn = left;
         int rightColumn = left + columnWidth + columnGap;
-        int y = 42;
-        int rowGap = 29;
+        int buttonY = this.height - 28;
+        int rowGap = Math.min(29, Math.max(22, (buttonY - 52) / 6));
+        int y = Math.min(42, Math.max(24, buttonY - 28 - rowGap * 6));
 
         addRenderableWidget(new StringWidget(0, 12, this.width, 18, this.title, this.font));
 
@@ -161,6 +164,30 @@ public class AutoTradePlusConfigScreen extends Screen {
         );
 
         y += rowGap;
+        this.autoCloseMerchantScreenButton = addButtonRow(
+                leftColumn,
+                y,
+                columnWidth,
+                Component.translatable("text.autoconfig.autotrade-plus.option.autoCloseMerchantScreen"),
+                boolText(config.autoCloseMerchantScreen),
+                button -> {
+                    config.autoCloseMerchantScreen = !config.autoCloseMerchantScreen;
+                    updateDynamicMessages();
+                }
+        );
+        this.resumeTradeProgressButton = addButtonRow(
+                rightColumn,
+                y,
+                columnWidth,
+                Component.translatable("text.autoconfig.autotrade-plus.option.resumeTradeProgress"),
+                boolText(config.resumeTradeProgress),
+                button -> {
+                    config.resumeTradeProgress = !config.resumeTradeProgress;
+                    updateDynamicMessages();
+                }
+        );
+
+        y += rowGap;
         this.toggleKeyButton = addButtonRow(
                 leftColumn,
                 y,
@@ -178,7 +205,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 button -> startEditingKey(AutoTradePlusClient.openConfigKey, button)
         );
 
-        int buttonY = Math.min(this.height - 28, y + rowGap + 12);
+        buttonY = Math.min(buttonY, y + rowGap + 12);
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> finish())
                 .bounds(this.width / 2 - 104, buttonY, 100, 20)
                 .build());
@@ -272,6 +299,18 @@ public class AutoTradePlusConfigScreen extends Screen {
         }
         if (this.debugButton != null) {
             this.debugButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.debug"), boolText(config.debug)));
+        }
+        if (this.autoCloseMerchantScreenButton != null) {
+            this.autoCloseMerchantScreenButton.setMessage(rowText(
+                    Component.translatable("text.autoconfig.autotrade-plus.option.autoCloseMerchantScreen"),
+                    boolText(config.autoCloseMerchantScreen)
+            ));
+        }
+        if (this.resumeTradeProgressButton != null) {
+            this.resumeTradeProgressButton.setMessage(rowText(
+                    Component.translatable("text.autoconfig.autotrade-plus.option.resumeTradeProgress"),
+                    boolText(config.resumeTradeProgress)
+            ));
         }
         if (this.dropModeButton != null) {
             this.dropModeButton.setMessage(rowText(
