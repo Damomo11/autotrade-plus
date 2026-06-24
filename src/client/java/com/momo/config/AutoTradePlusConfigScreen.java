@@ -60,7 +60,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 columnWidth,
                 Component.translatable("text.autoconfig.autotrade-plus.option.villagerProfession"),
                 summarizeProfession(config.villagerProfession),
-                button -> this.minecraft.setScreen(OptionMultiSelectScreen.professions(this, config.villagerProfession, value -> {
+                button -> this.minecraft.gui.setScreen(OptionMultiSelectScreen.professions(this, config.villagerProfession, value -> {
                     config.villagerProfession = value;
                     updateDynamicMessages();
                 }))
@@ -157,7 +157,7 @@ public class AutoTradePlusConfigScreen extends Screen {
                 columnWidth,
                 Component.translatable("text.autoconfig.autotrade-plus.option.dropItems"),
                 summarize(config.dropItems, Component.translatable("text.autotrade-plus.none").getString()),
-                button -> this.minecraft.setScreen(OptionMultiSelectScreen.items(this, config.dropItems, value -> {
+                button -> this.minecraft.gui.setScreen(OptionMultiSelectScreen.items(this, config.dropItems, value -> {
                     config.dropItems = value;
                     updateDynamicMessages();
                 }))
@@ -209,7 +209,7 @@ public class AutoTradePlusConfigScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> finish())
                 .bounds(this.width / 2 - 104, buttonY, 100, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.setScreen(this.parent))
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.gui.setScreen(this.parent))
                 .bounds(this.width / 2 + 4, buttonY, 100, 20)
                 .build());
     }
@@ -330,7 +330,7 @@ public class AutoTradePlusConfigScreen extends Screen {
         applyNumericFields();
         ModConfigManager.save();
         this.minecraft.options.save();
-        this.minecraft.setScreen(this.parent);
+        this.minecraft.gui.setScreen(this.parent);
     }
 
     private void applyNumericFields() {

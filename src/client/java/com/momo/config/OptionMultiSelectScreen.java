@@ -175,7 +175,7 @@ public class OptionMultiSelectScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> finish())
                 .bounds(left + (actionWidth + 6) * 3, buttonY, actionWidth, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.setScreen(this.parent))
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.minecraft.gui.setScreen(this.parent))
                 .bounds(left + (actionWidth + 6) * 4, buttonY, actionWidth, 20)
                 .build());
 
@@ -222,7 +222,7 @@ public class OptionMultiSelectScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(this.parent);
+        this.minecraft.gui.setScreen(this.parent);
     }
 
     private void updateOptions() {
@@ -398,7 +398,7 @@ public class OptionMultiSelectScreen extends Screen {
         } else {
             this.saveConsumer.accept(String.join(",", this.selected));
         }
-        this.minecraft.setScreen(this.parent);
+        this.minecraft.gui.setScreen(this.parent);
     }
 
     private int getListLeft() {

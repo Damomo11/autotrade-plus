@@ -71,7 +71,7 @@ public class AutoTradePlusController {
         processPendingDrop(config);
         syncEnabledState(config);
 
-        if (client.screen != null) {
+        if (client.gui.screen() != null) {
             drainKeyPresses(AutoTradePlusClient.toggleKey);
             drainKeyPresses(AutoTradePlusClient.openConfigKey);
             return;
@@ -82,7 +82,7 @@ public class AutoTradePlusController {
         }
 
         if (consumeKeyPress(AutoTradePlusClient.openConfigKey)) {
-            client.setScreen(ModConfigManager.createConfigScreen(null));
+            client.gui.setScreen(ModConfigManager.createConfigScreen(null));
             return;
         }
 
@@ -294,7 +294,7 @@ public class AutoTradePlusController {
     }
 
     private void sendTradeActionbar(Player player, String translationKey) {
-        Minecraft.getInstance().gui.setOverlayMessage(
+        Minecraft.getInstance().gui.hud.setOverlayMessage(
                 Component.translatable(
                         translationKey,
                         pendingTrade.professionText(),

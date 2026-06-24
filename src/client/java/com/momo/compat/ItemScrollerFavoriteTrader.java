@@ -24,7 +24,7 @@ public final class ItemScrollerFavoriteTrader {
     }
 
     public Result tryTrade(Minecraft client, boolean closeScreen) {
-        if (client.player == null || !(client.screen instanceof MerchantScreen screen)) {
+        if (client.player == null || !(client.gui.screen() instanceof MerchantScreen screen)) {
             handledSyncId = -1;
             return Result.notMerchant();
         }
