@@ -25,6 +25,8 @@ public class AutoTradePlusConfigScreen extends Screen {
     private Button enabledButton;
     private Button sneakButton;
     private Button fishingButton;
+    private Button timedModeButton;
+    private Button timedTradeTimesButton;
     private Button debugButton;
     private Button autoCloseMerchantScreenButton;
     private Button resumeTradeProgressButton;
@@ -49,8 +51,8 @@ public class AutoTradePlusConfigScreen extends Screen {
         int leftColumn = left;
         int rightColumn = left + columnWidth + columnGap;
         int buttonY = this.height - 28;
-        int rowGap = Math.min(29, Math.max(22, (buttonY - 52) / 6));
-        int y = Math.min(42, Math.max(24, buttonY - 28 - rowGap * 6));
+        int rowGap = Math.min(29, Math.max(22, (buttonY - 52) / 7));
+        int y = Math.min(42, Math.max(24, buttonY - 28 - rowGap * 7));
 
         addRenderableWidget(new StringWidget(0, 12, this.width, 18, this.title, this.font));
 
@@ -124,6 +126,30 @@ public class AutoTradePlusConfigScreen extends Screen {
                 columnWidth,
                 Component.translatable("text.autoconfig.autotrade-plus.option.villagerCooldownTicks"),
                 Integer.toString(config.villagerCooldownTicks)
+        );
+        this.timedModeButton = addButtonRow(
+                rightColumn,
+                y,
+                columnWidth,
+                Component.translatable("text.autoconfig.autotrade-plus.option.timedMode"),
+                boolText(config.timedMode),
+                button -> {
+                    config.timedMode = !config.timedMode;
+                    updateDynamicMessages();
+                }
+        );
+
+        y += rowGap;
+        this.timedTradeTimesButton = addButtonRow(
+                leftColumn,
+                y,
+                columnWidth,
+                Component.translatable("text.autoconfig.autotrade-plus.option.timedTradeTimes"),
+                summarizeTimedTradeTimes(config.timedTradeTimes),
+                button -> this.minecraft.setScreen(new TimedTradeTimesScreen(this, config.timedTradeTimes, value -> {
+                    config.timedTradeTimes = TimedTradeSchedule.normalize(value);
+                    updateDynamicMessages();
+                }))
         );
         this.debugButton = addButtonRow(
                 rightColumn,
@@ -297,6 +323,15 @@ public class AutoTradePlusConfigScreen extends Screen {
         if (this.fishingButton != null) {
             this.fishingButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.fishingMode"), boolText(config.fishingMode)));
         }
+        if (this.timedModeButton != null) {
+            this.timedModeButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.timedMode"), boolText(config.timedMode)));
+        }
+        if (this.timedTradeTimesButton != null) {
+            this.timedTradeTimesButton.setMessage(rowText(
+                    Component.translatable("text.autoconfig.autotrade-plus.option.timedTradeTimes"),
+                    summarizeTimedTradeTimes(config.timedTradeTimes)
+            ));
+        }
         if (this.debugButton != null) {
             this.debugButton.setMessage(rowText(Component.translatable("text.autoconfig.autotrade-plus.option.debug"), boolText(config.debug)));
         }
@@ -337,6 +372,7 @@ public class AutoTradePlusConfigScreen extends Screen {
         config.tradeRange = Math.max(0.0, parseDouble(this.tradeRangeField.getValue(), config.tradeRange));
         config.tradeCooldownTicks = Math.max(0, parseInt(this.tradeCooldownField.getValue(), config.tradeCooldownTicks));
         config.villagerCooldownTicks = Math.max(0, parseInt(this.villagerCooldownField.getValue(), config.villagerCooldownTicks));
+        config.timedTradeTimes = TimedTradeSchedule.normalize(config.timedTradeTimes);
     }
 
     private static double parseDouble(String value, double fallback) {
@@ -408,6 +444,18 @@ public class AutoTradePlusConfigScreen extends Screen {
             return count == 0 ? VillagerProfessionCatalog.displayTextForValue(VillagerProfessionCatalog.ALL_VALUE) : first;
         }
         return Component.translatable("text.autotrade-plus.selection.summary", first.getString(), count);
+    }
+
+    private Component summarizeTimedTradeTimes(String value) {
+        List<Integer> ticks = TimedTradeSchedule.parse(value);
+        if (ticks.isEmpty()) {
+            return Component.translatable("text.autotrade-plus.none");
+        }
+        String first = ticks.get(0) + "gt";
+        if (ticks.size() == 1) {
+            return Component.literal(first);
+        }
+        return Component.translatable("text.autotrade-plus.selection.summary", first, ticks.size());
     }
 
     private static Component rowText(Component label, Component value) {

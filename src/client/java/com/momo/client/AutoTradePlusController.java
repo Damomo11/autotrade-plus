@@ -4,6 +4,7 @@ import com.momo.AutoTradePlusClient;
 import com.momo.compat.ItemScrollerFavoriteTrader;
 import com.momo.config.ModConfig;
 import com.momo.config.ModConfigManager;
+import com.momo.config.TimedTradeSchedule;
 import com.momo.config.VillagerProfessionCatalog;
 import com.momo.utils.InventoryDropper;
 import java.util.ArrayList;
@@ -45,8 +46,10 @@ public class AutoTradePlusController {
     private int pendingDropTicks;
     private int pendingTradeTicks;
     private int lastCompletedIndex = -1;
+    private int lastObservedTimeOfDay = -1;
     private boolean enabledStateInitialized;
     private boolean lastKnownEnabled;
+    private boolean timedRoundActive;
     private TradeContext pendingTrade = TradeContext.empty();
 
     private final Map<UUID, Integer> villagerOrderMap = new HashMap<>();
@@ -70,13 +73,20 @@ public class AutoTradePlusController {
 
         processPendingDrop(config);
         syncEnabledState(config);
+        boolean timedTradingMode = config.timedMode && !config.fishingMode;
 
         if (client.screen != null) {
+            if (timedTradingMode && config.enabled) {
+                handleTimedSchedule(config, player, true);
+            }
             drainKeyPresses(AutoTradePlusClient.toggleKey);
             drainKeyPresses(AutoTradePlusClient.openConfigKey);
             return;
         }
 
+        if (timedTradingMode && config.enabled && pendingTrade.isActive()) {
+            handleTimedSchedule(config, player, true);
+        }
         if (waitForPendingTrade(config)) {
             return;
         }
@@ -90,7 +100,20 @@ public class AutoTradePlusController {
             toggleEnabled(config, player);
         }
 
-        if (!config.enabled || shouldPauseForSneaking(config, player)) {
+        if (!config.enabled) {
+            return;
+        }
+
+        boolean sneakingPaused = shouldPauseForSneaking(config, player);
+        if (timedTradingMode) {
+            if (sneakingPaused) {
+                handleTimedSchedule(config, player, true);
+                return;
+            }
+            if (!handleTimedSchedule(config, player, false)) {
+                return;
+            }
+        } else if (sneakingPaused) {
             return;
         }
 
@@ -230,6 +253,7 @@ public class AutoTradePlusController {
         }
 
         if (orderedVillagers.isEmpty()) {
+            finishTimedRoundWithoutTargets(config, player);
             return;
         }
 
@@ -251,6 +275,7 @@ public class AutoTradePlusController {
         }
 
         perTargetCooldown = 5;
+        finishTimedRoundWithoutTargets(config, player);
     }
 
     private void startRoundIfNeeded(ModConfig config, Player player) {
@@ -290,7 +315,71 @@ public class AutoTradePlusController {
             currentIndex = 0;
             roundCooldown = config.tradeCooldownTicks;
             roundStartTick = -1;
+            finishTimedRound(config);
         }
+    }
+
+    private boolean handleTimedSchedule(ModConfig config, Player player, boolean blocked) {
+        List<Integer> scheduledTimes = TimedTradeSchedule.parse(config.timedTradeTimes);
+        if (scheduledTimes.isEmpty()) {
+            return timedRoundActive;
+        }
+
+        long dayTime = player.level().getOverworldClockTime();
+        int timeOfDay = Math.floorMod(dayTime, TimedTradeSchedule.DAY_TICKS);
+        boolean arrivedAtScheduledTime = false;
+        int scheduledTick = -1;
+        for (int tick : scheduledTimes) {
+            if (tick == timeOfDay) {
+                arrivedAtScheduledTime = lastObservedTimeOfDay != timeOfDay;
+                scheduledTick = tick;
+                break;
+            }
+        }
+        lastObservedTimeOfDay = timeOfDay;
+
+        if (!arrivedAtScheduledTime) {
+            return timedRoundActive;
+        }
+
+        if (blocked || timedRoundActive || pendingTrade.isActive()) {
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.timed_round_skipped", scheduledTick)
+                    .withStyle(ChatFormatting.YELLOW));
+            return timedRoundActive;
+        }
+
+        resetRoundState();
+        timedRoundActive = true;
+        roundCooldown = 0;
+        perTargetCooldown = 0;
+        debug(config, player, Component.translatable("text.autotrade-plus.debug.timed_round_started", scheduledTick)
+                .withStyle(ChatFormatting.GREEN));
+        return true;
+    }
+
+    private void finishTimedRound(ModConfig config) {
+        if (!timedRoundActive) {
+            return;
+        }
+        timedRoundActive = false;
+        roundCooldown = 0;
+        perTargetCooldown = 0;
+        Player player = Minecraft.getInstance().player;
+        if (player != null) {
+            debug(config, player, Component.translatable("text.autotrade-plus.debug.timed_round_finished")
+                    .withStyle(ChatFormatting.GREEN));
+        }
+    }
+
+    private void finishTimedRoundWithoutTargets(ModConfig config, Player player) {
+        if (!timedRoundActive) {
+            return;
+        }
+        timedRoundActive = false;
+        roundCooldown = 0;
+        perTargetCooldown = 0;
+        debug(config, player, Component.translatable("text.autotrade-plus.debug.timed_round_no_targets")
+                .withStyle(ChatFormatting.YELLOW));
     }
 
     private void sendTradeActionbar(Player player, String translationKey) {
@@ -411,6 +500,7 @@ public class AutoTradePlusController {
         cachedDropItemsString = "";
         pendingDropTicks = 0;
         pendingTradeTicks = 0;
+        timedRoundActive = false;
         pendingTrade = TradeContext.empty();
     }
 
@@ -418,6 +508,7 @@ public class AutoTradePlusController {
         roundCooldown = 0;
         perTargetCooldown = 0;
         pendingTradeTicks = 0;
+        timedRoundActive = false;
         pendingTrade = TradeContext.empty();
 
         if (orderedVillagers.isEmpty()) {

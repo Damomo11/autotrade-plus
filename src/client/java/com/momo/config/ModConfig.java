@@ -20,6 +20,12 @@ public class ModConfig implements ConfigData {
     public int villagerCooldownTicks = 20;
 
     @ConfigEntry.Gui.Tooltip
+    public boolean timedMode = false;
+
+    @ConfigEntry.Gui.Tooltip
+    public String timedTradeTimes = TimedTradeSchedule.DEFAULT_TIMES;
+
+    @ConfigEntry.Gui.Tooltip
     @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
     public DropMode dropMode = DropMode.DISABLED;
 
@@ -69,6 +75,7 @@ public class ModConfig implements ConfigData {
     @Override
     public void validatePostLoad() {
         villagerProfession = VillagerProfessionCatalog.normalizeSelection(villagerProfession);
+        timedTradeTimes = TimedTradeSchedule.normalize(timedTradeTimes);
         if (tradeRange < 0) tradeRange = 0;
         if (tradeCooldownTicks < 0) tradeCooldownTicks = 0;
         if (villagerCooldownTicks < 0) villagerCooldownTicks = 0;
